@@ -1,184 +1,198 @@
 package analytics
 
 import (
-	"encoding/base64"
-	"reflect"
+	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/TykTechnologies/logrus"
 	"github.com/TykTechnologies/tyk-pump/logger"
 )
 
 var log = logger.GetLogger()
-var analyticsRecordPrefix = "analyticsRecord"
 
 type NetworkStats struct {
-	OpenConnections  int64
-	ClosedConnection int64
-	BytesIn          int64
-	BytesOut         int64
+	OpenConnections  int64 `json:"open_connections"`
+	ClosedConnection int64 `json:"closed_connections"`
+	BytesIn          int64 `json:"bytes_in"`
+	BytesOut         int64 `json:"bytes_out"`
 }
 
 type Latency struct {
-	Total    int64
-	Upstream int64
+	Total    int64 `json:"total"`
+	Upstream int64 `json:"upstream"`
 }
 
 // AnalyticsRecord encodes the details of a request
 type AnalyticsRecord struct {
-	Method        string
-	Host          string
-	Path          string
-	RawPath       string
-	ContentLength int64
-	UserAgent     string
-	Day           int
-	Month         time.Month
-	Year          int
-	Hour          int
-	ResponseCode  int
-	APIKey        string
-	TimeStamp     time.Time
-	APIVersion    string
-	APIName       string
-	APIID         string
-	OrgID         string
-	OauthID       string
-	RequestTime   int64
-	RawRequest    string
-	RawResponse   string
-	IPAddress     string
-	Geo           GeoData
-	Network       NetworkStats
-	Latency       Latency
-	Tags          []string
-	Alias         string
-	TrackPath     bool
-	ExpireAt      time.Time `bson:"expireAt" json:"expireAt"`
+	Method        string       `json:"method"`
+	Host          string       `json:"host"`
+	Path          string       `json:"path"`
+	RawPath       string       `json:"raw_path"`
+	ContentLength int64        `json:"content_length"`
+	UserAgent     string       `json:"user_agent"`
+	Day           int          `json:"day"`
+	Month         time.Month   `json:"month"`
+	Year          int          `json:"year"`
+	Hour          int          `json:"hour"`
+	ResponseCode  int          `json:"response_code"`
+	APIKey        string       `json:"api_key"`
+	TimeStamp     time.Time    `json:"timestamp"`
+	APIVersion    string       `json:"api_version"`
+	APIName       string       `json:"api_name"`
+	APIID         string       `json:"api_id"`
+	OrgID         string       `json:"org_id"`
+	OauthID       string       `json:"oauth_id"`
+	RequestTime   int64        `json:"request_time"`
+	RawRequest    string       `json:"raw_request"`
+	RawResponse   string       `json:"raw_response"`
+	IPAddress     string       `json:"ip_address"`
+	Geo           GeoData      `json:"geo"`
+	Network       NetworkStats `json:"network_stats"`
+	Latency       Latency      `json:"latency"`
+	Tags          []string     `json:"tags"`
+	Alias         string       `json:"alias"`
+	TrackPath     bool         `json:"track_path"`
+	ExpireAt      time.Time    `bson:"expireAt" json:"expireAt"`
 }
 
 type GeoData struct {
 	Country struct {
-		ISOCode string `maxminddb:"iso_code"`
-	} `maxminddb:"country"`
+		ISOCode string `maxminddb:"iso_code" json:"iso_code"`
+	} `maxminddb:"country" json:"country"`
 
 	City struct {
-		GeoNameID uint              `maxminddb:"geoname_id"`
-		Names     map[string]string `maxminddb:"names"`
-	} `maxminddb:"city"`
+		GeoNameID uint              `maxminddb:"geoname_id" json:"geoname_id"`
+		Names     map[string]string `maxminddb:"names" json:"names"`
+	} `maxminddb:"city" json:"city"`
 
 	Location struct {
-		Latitude  float64 `maxminddb:"latitude"`
-		Longitude float64 `maxminddb:"longitude"`
-		TimeZone  string  `maxminddb:"time_zone"`
-	} `maxminddb:"location"`
+		Latitude  float64 `maxminddb:"latitude" json:"latitude"`
+		Longitude float64 `maxminddb:"longitude" json:"longitude"`
+		TimeZone  string  `maxminddb:"time_zone" json:"time_zone"`
+	} `maxminddb:"location" json:"location"`
+}
+
+func (n *NetworkStats) GetFieldNames() []string {
+	return []string{
+		"NetworkStats.OpenConnections",
+		"NetworkStats.ClosedConnection",
+		"NetworkStats.BytesIn",
+		"NetworkStats.BytesOut",
+	}
+}
+
+func (l *Latency) GetFieldNames() []string {
+	return []string{
+		"Latency.Total",
+		"Latency.Upstream",
+	}
+}
+
+func (g *GeoData) GetFieldNames() []string {
+	return []string{
+		"GeoData.Country.ISOCode",
+		"GeoData.City.GeoNameID",
+		"GeoData.City.Names",
+		"GeoData.Location.Latitude",
+		"GeoData.Location.Longitude",
+		"GeoData.Location.TimeZone",
+	}
 }
 
 func (a *AnalyticsRecord) GetFieldNames() []string {
-	val := reflect.ValueOf(a).Elem()
-	fields := []string{}
-
-	for i := 0; i < val.NumField(); i++ {
-		typeField := val.Type().Field(i)
-		fields = append(fields, typeField.Name)
+	fields := []string{
+		"Method",
+		"Host",
+		"Path",
+		"RawPath",
+		"ContentLength",
+		"UserAgent",
+		"Day",
+		"Month",
+		"Year",
+		"Hour",
+		"ResponseCode",
+		"APIKey",
+		"TimeStamp",
+		"APIVersion",
+		"APIName",
+		"APIID",
+		"OrgID",
+		"OauthID",
+		"RequestTime",
+		"RawRequest",
+		"RawResponse",
+		"IPAddress",
 	}
+	fields = append(fields, a.Geo.GetFieldNames()...)
+	fields = append(fields, a.Network.GetFieldNames()...)
+	fields = append(fields, a.Latency.GetFieldNames()...)
+	return append(fields, "Tags", "Alias", "TrackPath", "ExpireAt")
+}
 
-	return fields
+func (n *NetworkStats) GetLineValues() []string {
+	fields := []string{}
+	fields = append(fields, strconv.FormatUint(uint64(n.OpenConnections), 10))
+	fields = append(fields, strconv.FormatUint(uint64(n.ClosedConnection), 10))
+	fields = append(fields, strconv.FormatUint(uint64(n.BytesIn), 10))
+	return append(fields, strconv.FormatUint(uint64(n.BytesOut), 10))
+}
+
+func (l *Latency) GetLineValues() []string {
+	fields := []string{}
+	fields = append(fields, strconv.FormatUint(uint64(l.Total), 10))
+	return append(fields, strconv.FormatUint(uint64(l.Upstream), 10))
+}
+
+func (g *GeoData) GetLineValues() []string {
+	fields := []string{}
+	fields = append(fields, g.Country.ISOCode)
+	fields = append(fields, strconv.FormatUint(uint64(g.City.GeoNameID), 10))
+	keys := make([]string, 0, len(g.City.Names))
+	for k := range g.City.Names {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	var cityNames string
+	first := true
+	for _, key := range keys {
+		keyval := g.City.Names[key]
+		if first {
+			first = false
+			cityNames = fmt.Sprintf("%s:%s", key, keyval)
+		} else {
+			cityNames = fmt.Sprintf("%s;%s:%s", cityNames, key, keyval)
+		}
+	}
+	fields = append(fields, cityNames)
+	fields = append(fields, strconv.FormatUint(uint64(g.Location.Latitude), 10))
+	fields = append(fields, strconv.FormatUint(uint64(g.Location.Longitude), 10))
+	return append(fields, g.Location.TimeZone)
 }
 
 func (a *AnalyticsRecord) GetLineValues() []string {
-	val := reflect.ValueOf(a).Elem()
 	fields := []string{}
-
-	for i := 0; i < val.NumField(); i++ {
-		valueField := val.Field(i)
-		typeField := val.Type().Field(i)
-		thisVal := ""
-		switch typeField.Type.String() {
-		case "int":
-			thisVal = strconv.Itoa(int(valueField.Int()))
-		case "int64":
-			thisVal = strconv.Itoa(int(valueField.Int()))
-		case "[]string":
-			tmpVal := valueField.Interface().([]string)
-			thisVal = strings.Join(tmpVal, ";")
-		case "time.Time":
-			tmpVal := valueField.Interface().(time.Time)
-			thisVal = tmpVal.String()
-		case "time.Month":
-			tmpVal := valueField.Interface().(time.Month)
-			thisVal = tmpVal.String()
-		default:
-			thisVal = valueField.String()
-		}
-
-		fields = append(fields, thisVal)
-	}
-
+	fields = append(fields, a.Method, a.Host, a.Path, a.RawPath)
+	fields = append(fields, strconv.FormatUint(uint64(a.ContentLength), 10))
+	fields = append(fields, a.UserAgent)
+	fields = append(fields, strconv.FormatUint(uint64(a.Day), 10))
+	fields = append(fields, a.Month.String())
+	fields = append(fields, strconv.FormatUint(uint64(a.Year), 10))
+	fields = append(fields, strconv.FormatUint(uint64(a.Hour), 10))
+	fields = append(fields, strconv.FormatUint(uint64(a.ResponseCode), 10))
+	fields = append(fields, a.APIKey)
+	fields = append(fields, a.TimeStamp.String())
+	fields = append(fields, a.APIVersion, a.APIName, a.APIID, a.OrgID, a.OauthID)
+	fields = append(fields, strconv.FormatUint(uint64(a.RequestTime), 10))
+	fields = append(fields, a.RawRequest, a.RawResponse, a.IPAddress)
+	fields = append(fields, a.Geo.GetLineValues()...)
+	fields = append(fields, a.Network.GetLineValues()...)
+	fields = append(fields, a.Latency.GetLineValues()...)
+	fields = append(fields, strings.Join(a.Tags[:], ";"))
+	fields = append(fields, a.Alias)
+	fields = append(fields, strconv.FormatBool(a.TrackPath))
+	fields = append(fields, a.ExpireAt.String())
 	return fields
-}
-
-//change name - obfuscateAndDecode request
-func (a *AnalyticsRecord) ObfuscateKey() {
-
-	if a.APIKey == "" {
-		return
-	}
-
-	fullApiKey := a.APIKey
-	a.APIKey = ObfuscateString(a.APIKey) //Obfuscate the key field
-
-	if a.RawRequest == "" {
-		return
-	}
-
-	decodeRequest, err := base64.StdEncoding.DecodeString(a.RawRequest)
-	if err != nil {
-		log.WithFields(logrus.Fields{
-			"prefix":          analyticsRecordPrefix,
-			"apiId":           a.APIID,
-			"apiName:version": a.APIName + ":" + a.APIVersion,
-			"error":           err,
-		}).Error("Error while decoding raw request ", a.RawRequest)
-
-		return
-	}
-
-	sDecodedRequest := string(decodeRequest)
-
-	//Algorithm: Lookup the key and use it as the separator. Once the string is split, we obfuscate the key anf concatenate back
-	//the 2 parts with the obfuscated key in the middle
-	//
-	//Example:
-	// GET ...Authorization: 59d27324b8125f000137663e2c650c3576b348bfbe1490fef5db0c49 ...\r\n
-	// GET ...Authorization: ****0c49 ...\r\n
-	requestWithoutKey := strings.Split(sDecodedRequest, fullApiKey)
-	if len(requestWithoutKey) != 2 {
-		log.WithFields(logrus.Fields{
-			"prefix":          analyticsRecordPrefix,
-			"apiId":           a.APIID,
-			"apiName:version": a.APIName + ":" + a.APIVersion,
-			"encoded request": a.RawRequest,
-			"decoded request": sDecodedRequest,
-		}).Error("Authorization key hasn't been found in the decoded string")
-
-		return
-	}
-	reqWithObfuscatedKey := requestWithoutKey[0] + a.APIKey + requestWithoutKey[1]
-
-	a.RawRequest = base64.StdEncoding.EncodeToString([]byte(reqWithObfuscatedKey))
-}
-
-func ObfuscateString(keyName string) string {
-
-	if keyName == "" {
-		return ""
-	}
-
-	if len(keyName) > 4 {
-		return "****" + keyName[len(keyName)-4:]
-	}
-	return "----"
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -46,6 +47,11 @@ func Init() {
 
 	kingpin.Parse()
 	log.Formatter = new(prefixed.TextFormatter)
+	LoadConfig(conf, &SystemConfig)
+
+	if SystemConfig.LogFormat == "json" {
+		log.Formatter = &logrus.JSONFormatter{}
+	}
 
 	envDemo := os.Getenv("TYK_PMP_BUILDDEMODATA")
 	if envDemo != "" {
@@ -56,8 +62,6 @@ func Init() {
 	log.WithFields(logrus.Fields{
 		"prefix": mainPrefix,
 	}).Info("## Tyk Analytics Pump, ", VERSION, " ##")
-
-	LoadConfig(conf, &SystemConfig)
 
 	// If no environment variable is set, check the configuration file:
 	if os.Getenv("TYK_LOGLEVEL") == "" {
@@ -115,8 +119,8 @@ func storeVersion() {
 }
 
 func initialisePumps() {
-	Pumps = make([]pumps.Pump, len(SystemConfig.Pumps))
-	i := 0
+	Pumps = []pumps.Pump{}
+
 	for key, pmp := range SystemConfig.Pumps {
 		pumpTypeName := pmp.Type
 		if pumpTypeName == "" {
@@ -135,22 +139,27 @@ func initialisePumps() {
 			thisPmp.SetOmitDetailedRecording(pmp.OmitDetailedRecording)
 			initErr := thisPmp.Init(pmp.Meta)
 			if initErr != nil {
-				log.Error("Pump init error (skipping): ", initErr)
+				log.WithField("pump", thisPmp.GetName()).Error("Pump init error (skipping): ", initErr)
 			} else {
 				log.WithFields(logrus.Fields{
 					"prefix": mainPrefix,
-				}).Info("Init Pump: ", thisPmp.GetName())
-				Pumps[i] = thisPmp
+				}).Info("Init Pump: ", key)
+				Pumps = append(Pumps, thisPmp)
 			}
 		}
-		i++
+	}
+
+	if len(Pumps) == 0 {
+		log.WithFields(logrus.Fields{
+			"prefix": mainPrefix,
+		}).Fatal("No pumps configured")
 	}
 
 	if !SystemConfig.DontPurgeUptimeData {
 		log.WithFields(logrus.Fields{
 			"prefix": mainPrefix,
 		}).Info("'dont_purge_uptime_data' set to false, attempting to start Uptime pump! ", UptimePump.GetName())
-		UptimePump = pumps.MongoPump{}
+		UptimePump = pumps.MongoPump{IsUptime: true}
 		UptimePump.Init(SystemConfig.UptimePumpConfig)
 		log.WithFields(logrus.Fields{
 			"prefix": mainPrefix,
@@ -162,39 +171,47 @@ func initialisePumps() {
 func StartPurgeLoop(secInterval int, chunkSize int64, expire time.Duration, omitDetails bool) {
 	for range time.Tick(time.Duration(secInterval) * time.Second) {
 		job := instrument.NewJob("PumpRecordsPurge")
+		startTime := time.Now()
 
-		AnalyticsValues := AnalyticsStore.GetAndDeleteSet(storage.ANALYTICS_KEYNAME, chunkSize, expire)
-		if len(AnalyticsValues) > 0 {
-			startTime := time.Now()
+		for i := -1; i < 10; i++ {
+			var analyticsKeyName string
+			if i == -1 {
+				//if it's the first iteration, we look for tyk-system-analytics to maintain backwards compatibility or if analytics_config.enable_multiple_analytics_keys is disabled in the gateway
+				analyticsKeyName = storage.ANALYTICS_KEYNAME
+			} else {
+				analyticsKeyName = fmt.Sprintf("%v_%v", storage.ANALYTICS_KEYNAME, i)
+			}
+			AnalyticsValues := AnalyticsStore.GetAndDeleteSet(analyticsKeyName, chunkSize, expire)
+			if len(AnalyticsValues) > 0 {
+				// Convert to something clean
+				keys := make([]interface{}, len(AnalyticsValues))
 
-			// Convert to something clean
-			keys := make([]interface{}, len(AnalyticsValues))
-
-			for i, v := range AnalyticsValues {
-				decoded := analytics.AnalyticsRecord{}
-				err := msgpack.Unmarshal([]byte(v.(string)), &decoded)
-				log.WithFields(logrus.Fields{
-					"prefix": mainPrefix,
-				}).Debug("Decoded Record: ", decoded)
-				if err != nil {
+				for i, v := range AnalyticsValues {
+					decoded := analytics.AnalyticsRecord{}
+					err := msgpack.Unmarshal([]byte(v.(string)), &decoded)
 					log.WithFields(logrus.Fields{
 						"prefix": mainPrefix,
-					}).Error("Couldn't unmarshal analytics data:", err)
-				} else {
-					if omitDetails {
-						decoded.RawRequest = ""
-						decoded.RawResponse = ""
+					}).Debug("Decoded Record: ", decoded)
+					if err != nil {
+						log.WithFields(logrus.Fields{
+							"prefix":       mainPrefix,
+							"analytic_key": analyticsKeyName,
+						}).Error("Couldn't unmarshal analytics data:", err)
+					} else {
+						if omitDetails {
+							decoded.RawRequest = ""
+							decoded.RawResponse = ""
+						}
+						keys[i] = interface{}(decoded)
+						job.Event("record")
 					}
-					keys[i] = interface{}(decoded)
-					job.Event("record")
 				}
+				// Send to pumps
+				writeToPumps(keys, job, startTime, int(secInterval))
 			}
-
-			// Send to pumps
-			writeToPumps(keys, job, startTime, int(secInterval))
-
-			job.Timing("purge_time_all", time.Since(startTime).Nanoseconds())
 		}
+
+		job.Timing("purge_time_all", time.Since(startTime).Nanoseconds())
 
 		if !SystemConfig.DontPurgeUptimeData {
 			UptimeValues := UptimeStorage.GetAndDeleteSet(storage.UptimeAnalytics_KEYNAME, chunkSize, expire)
@@ -221,11 +238,11 @@ func writeToPumps(keys []interface{}, job *health.Job, startTime time.Time, purg
 
 func filterData(pump pumps.Pump, keys []interface{}) []interface{} {
 	filters := pump.GetFilters()
-	if !filters.HasFilter() && !pump.GetOmitDetailedRecording() && !SystemConfig.ObfuscateKeys {
+	if !filters.HasFilter() && !pump.GetOmitDetailedRecording() {
 		return keys
 	}
 	filteredKeys := keys[:]
-	newLength := 0
+	newLenght := 0
 
 	for _, key := range filteredKeys {
 		decoded := key.(analytics.AnalyticsRecord)
@@ -236,15 +253,10 @@ func filterData(pump pumps.Pump, keys []interface{}) []interface{} {
 		if filters.ShouldFilter(decoded) {
 			continue
 		}
-
-		if SystemConfig.ObfuscateKeys {
-			decoded.ObfuscateKey()
-		}
-
-		filteredKeys[newLength] = decoded
-		newLength++
+		filteredKeys[newLenght] = decoded
+		newLenght++
 	}
-	filteredKeys = filteredKeys[:newLength]
+	filteredKeys = filteredKeys[:newLenght]
 	return filteredKeys
 }
 

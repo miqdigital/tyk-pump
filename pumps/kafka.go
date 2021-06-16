@@ -27,8 +27,10 @@ type KafkaPump struct {
 type Json map[string]interface{}
 
 var kafkaPrefix = "kafka-pump"
+var kafkaDefaultENV = PUMPS_ENV_PREFIX + "_KAFKA" + PUMPS_ENV_META_PREFIX
 
 type KafkaConf struct {
+	EnvPrefix             string            `mapstructure:"meta_env_prefix"`
 	Broker                []string          `mapstructure:"broker"`
 	ClientId              string            `mapstructure:"client_id"`
 	Topic                 string            `mapstructure:"topic"`
@@ -54,16 +56,21 @@ func (k *KafkaPump) GetName() string {
 	return "Kafka Pump"
 }
 
+func (k *KafkaPump) GetEnvPrefix() string {
+	return k.kafkaConf.EnvPrefix
+}
+
 func (k *KafkaPump) Init(config interface{}) error {
 	k.log = log.WithField("prefix", kafkaPrefix)
 
 	//Read configuration file
 	k.kafkaConf = &KafkaConf{}
 	err := mapstructure.Decode(config, &k.kafkaConf)
-
 	if err != nil {
 		k.log.Fatal("Failed to decode configuration: ", err)
 	}
+
+	processPumpEnvVars(k, k.log, k.kafkaConf, kafkaDefaultENV)
 
 	var tlsConfig *tls.Config
 	if k.kafkaConf.UseSSL {
@@ -129,13 +136,16 @@ func (k *KafkaPump) Init(config interface{}) error {
 		k.writerConfig.CompressionCodec = snappy.NewCompressionCodec()
 	}
 
-	k.log.Info("Kafka config: ", k.writerConfig)
+	k.log.Debug("Kafka config: ", k.writerConfig)
+
+	k.log.Info(k.GetName() + " Initialized")
+
 	return nil
 }
 
 func (k *KafkaPump) WriteData(ctx context.Context, data []interface{}) error {
 	startTime := time.Now()
-	k.log.Info("Writing ", len(data), " records...")
+	k.log.Debug("Attempting to write ", len(data), " records...")
 	kafkaMessages := make([]kafka.Message, len(data))
 	for i, v := range data {
 		//Build message format
@@ -184,6 +194,7 @@ func (k *KafkaPump) WriteData(ctx context.Context, data []interface{}) error {
 		k.log.WithError(kafkaError).Error("unable to write message")
 	}
 	k.log.Debug("ElapsedTime in seconds for ", len(data), " records:", time.Now().Sub(startTime))
+	k.log.Info("Purged ", len(data), " records...")
 	return nil
 }
 

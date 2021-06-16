@@ -1,11 +1,15 @@
 package pumps
 
-import "github.com/TykTechnologies/tyk-pump/analytics"
+import (
+	"github.com/TykTechnologies/logrus"
+	"github.com/TykTechnologies/tyk-pump/analytics"
+)
 
 type CommonPumpConfig struct {
 	filters               analytics.AnalyticsFilters
 	timeout               int
 	OmitDetailedRecording bool
+	log                   *logrus.Entry
 }
 
 func (p *CommonPumpConfig) SetFilters(filters analytics.AnalyticsFilters) {
@@ -27,4 +31,8 @@ func (p *CommonPumpConfig) SetOmitDetailedRecording(OmitDetailedRecording bool) 
 }
 func (p *CommonPumpConfig) GetOmitDetailedRecording() bool {
 	return p.OmitDetailedRecording
+}
+
+func (p *CommonPumpConfig) GetEnvPrefix() string {
+	return ""
 }
