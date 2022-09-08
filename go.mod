@@ -27,7 +27,7 @@ require (
 	github.com/lintianzhi/graylogd v0.0.0-20180503131252-dc68342f04dc // indirect
 	github.com/logzio/logzio-go v0.0.0-20200316143903-ac8fc0e2910e
 	github.com/lonelycode/mgohacks v0.0.0-20150820024025-f9c291f7e57e
-	github.com/mitchellh/mapstructure v1.1.2
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/moesif/moesifapi-go v1.0.6
 	github.com/olivere/elastic v6.2.31+incompatible // indirect
 	github.com/olivere/elastic/v7 v7.0.28
