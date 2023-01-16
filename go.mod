@@ -31,7 +31,7 @@ require (
 	github.com/moesif/moesifapi-go v1.0.6
 	github.com/olivere/elastic v6.2.31+incompatible // indirect
 	github.com/olivere/elastic/v7 v7.0.28
-	github.com/oschwald/maxminddb-golang v1.5.0
+	github.com/oschwald/maxminddb-golang v1.10.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.11.0
 	github.com/quipo/statsd v0.0.0-20160923160612-75b7afedf0d2
@@ -42,7 +42,7 @@ require (
 	github.com/segmentio/kafka-go v0.3.6
 	github.com/shirou/gopsutil v3.20.11+incompatible // indirect
 	github.com/sirupsen/logrus v1.8.1
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.3
 	github.com/syndtr/goleveldb v0.0.0-20190318030020-c3a204f8e965 // indirect
 	github.com/x-cray/logrus-prefixed-formatter v0.5.2
 	github.com/xtgo/uuid v0.0.0-20140804021211-a0b114877d4c // indirect
