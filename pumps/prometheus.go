@@ -393,6 +393,19 @@ func (pm *PrometheusMetric) GetLabelsValues(decoded analytics.AnalyticsRecord) [
 	for _, label := range pm.Labels {
 		if val, ok := mapping[label]; ok {
 			values = append(values, fmt.Sprint(val))
+		}else{
+			// log.Info(label)
+			val = "UNKNOWN"
+			for _, tag := range decoded.Tags{
+				prefixString := label + "-"
+				if strings.HasPrefix(tag,prefixString){
+					val = tag[len(prefixString):]
+					break
+				}
+			}
+			if label != "type" {
+				values = append(values, fmt.Sprint(val))
+			}
 		}
 	}
 	return values
