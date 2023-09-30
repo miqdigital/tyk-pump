@@ -399,6 +399,7 @@ func (pm *PrometheusMetric) GetLabelsValues(decoded analytics.AnalyticsRecord) [
 			for _, tag := range decoded.Tags {
 				prefixString := label + "-"
 				if strings.HasPrefix(tag, prefixString) {
+
 					val = tag[len(prefixString):]
 					break
 				}
