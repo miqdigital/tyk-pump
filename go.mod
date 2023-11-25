@@ -19,7 +19,7 @@ require (
 	github.com/google/go-cmp v0.5.9
 	github.com/gorilla/mux v1.8.0
 	github.com/influxdata/influxdb v1.8.10
-	github.com/influxdata/influxdb-client-go/v2 v2.6.0
+	github.com/influxdata/influxdb-client-go/v2 v2.12.4
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/logzio/logzio-go v0.0.0-20200316143903-ac8fc0e2910e
 	github.com/mitchellh/mapstructure v1.3.1
@@ -35,7 +35,7 @@ require (
 	github.com/segmentio/kafka-go v0.3.6
 	github.com/sirupsen/logrus v1.8.1
 	github.com/stretchr/testify v1.8.4
-	golang.org/x/net v0.7.0
+	golang.org/x/net v0.17.0
 	google.golang.org/protobuf v1.30.0
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/olivere/elastic.v3 v3.0.56
@@ -53,6 +53,7 @@ require (
 	github.com/StackExchange/wmi v0.0.0-20190523213315-cbe66965904d // indirect
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
 	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137 // indirect
+	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.5.0 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.7.0 // indirect
@@ -69,11 +70,12 @@ require (
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/deepmap/oapi-codegen v1.8.2 // indirect
+	github.com/deepmap/oapi-codegen v1.12.4 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/go-ole/go-ole v1.2.4 // indirect
 	github.com/go-sql-driver/mysql v1.5.0 // indirect
 	github.com/golang/snappy v0.0.3 // indirect
+	github.com/google/uuid v1.3.0 // indirect
 	github.com/helloeave/json v1.15.3 // indirect
 	github.com/influxdata/line-protocol v0.0.0-20200327222509-2487e7298839 // indirect
 	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
@@ -120,13 +122,12 @@ require (
 	go.mongodb.org/mongo-driver v1.11.2 // indirect
 	go.opentelemetry.io/otel v0.13.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
-	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d // indirect
+	golang.org/x/crypto v0.14.0 // indirect
 	golang.org/x/sync v0.2.0 // indirect
-	golang.org/x/sys v0.9.0 // indirect
-	golang.org/x/text v0.7.0 // indirect
+	golang.org/x/sys v0.13.0 // indirect
+	golang.org/x/text v0.13.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	gopkg.in/mgo.v2 v2.0.0-20190816093944-a6b53ec6cb22 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
