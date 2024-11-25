@@ -37,7 +37,7 @@ require (
 	github.com/segmentio/analytics-go v0.0.0-20160711225931-bdb0aeca8a99
 	github.com/segmentio/kafka-go v0.3.6
 	github.com/sirupsen/logrus v1.9.3
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.10.0
 	golang.org/x/net v0.25.0
 	google.golang.org/protobuf v1.30.0
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
