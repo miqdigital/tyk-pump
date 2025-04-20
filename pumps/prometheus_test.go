@@ -331,7 +331,7 @@ func TestPrometheusGetLabelsValues(t *testing.T) {
 				ResponseCode: 200,
 				APIKey:       "apikey",
 			},
-			expectedLabels: []string{"testHost", "testMethod"},
+			expectedLabels: []string{"testHost", "testMethod", "UNKNOWN"},
 		},
 		{
 			testName: "situational labels names ",
