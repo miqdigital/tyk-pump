@@ -36,7 +36,7 @@ require (
 	github.com/quipo/statsd v0.0.0-20160923160612-75b7afedf0d2
 	github.com/resurfaceio/logger-go/v3 v3.3.2
 	github.com/robertkowalski/graylog-golang v0.0.0-20151121031040-e5295cfa2827
-	github.com/segmentio/analytics-go v0.0.0-20160711225931-bdb0aeca8a99
+	github.com/segmentio/analytics-go v3.1.0+incompatible
 	github.com/segmentio/kafka-go v0.3.6
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.4
@@ -89,7 +89,6 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/jackc/pgtype v1.14.0 // indirect
 	github.com/jackc/pgx/v4 v4.18.3 // indirect
-	github.com/jehiah/go-strftime v0.0.0-20151206194810-2efbe75097a5 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.2 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
